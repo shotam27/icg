@@ -1,5 +1,6 @@
 <script>
 export default {
+  props: ['hoge1', 'hoge2'],
   data() {
     return {
       fields: [],
@@ -13,9 +14,6 @@ export default {
     })
     this.$fire.database.ref('gameVals').on('value', (snapshot) => {
       this.gameVals = snapshot.val()
-    })
-    this.$fire.database.ref('resetFlag').on('value', (snapshot) => {
-      this.resetFlag = snapshot.val()
     })
   },
 }

@@ -11,7 +11,10 @@
 
     <div class="sm:flex justify-evenly w-full">
       <div class="left sm:w-1/4 sm:mr-4">
-        <div v-if="gameMaster === true" class="" @click="reset()">reset</div>
+        <div v-if="gameMaster === true" class="">
+          <div @click="reset()">reset</div>
+          <nuxt-link to="/cardsDb">db</nuxt-link>
+        </div>
         <div v-if="selected.usingIP == 2727" class="ml-2" @click="chPl()">
           CH PL
         </div>
@@ -237,8 +240,6 @@
 </template>
 
 <script>
-import { storeToRefs } from 'pinia'
-import { useGameStore } from '~/store/game'
 import EffectsComponent from '~/components/EffectsComponent'
 
 export default {
@@ -319,6 +320,7 @@ export default {
             selectedPlace: 0,
             usingIP: 0,
             phase: 0,
+            effectFlags: [],
           },
           {
             name: '',
@@ -328,13 +330,12 @@ export default {
             selectedPlace: 0,
             usingIP: 0,
             phase: 0,
+            effectFlags: [],
           },
         ],
         logNo: 0,
         gameEndFlag: 0,
       },
-
-      // pinia系
 
       selected: {
         fieldId: 0,
@@ -393,9 +394,6 @@ export default {
       secondBatterFlag: 0,
       buttonMessage: '選出確定',
       phaseMessage: 'カードを選択し、支払うIPを指定してください',
-
-      countTest: storeToRefs(useGameStore()).counter,
-      ct2: storeToRefs(useGameStore()).counter,
     }
   },
   computed: {
@@ -433,9 +431,6 @@ export default {
   },
   watch: {
     deep: true,
-    selected(newVal) {
-      useGameStore().getSelected(newVal)
-    },
     cardPool() {
       this.cards = this.deepCopy(this.cardPool)
       this.cards = this.cards.concat(this.deepCopy(this.tokens))
@@ -610,10 +605,6 @@ export default {
     })
   },
   methods: {
-    ct2plus() {
-      useGameStore().reset()
-      this.ct2 = useGameStore().counter
-    },
     changeIP(morc, val) {
       if (morc === 0) {
         this.gameVals.pVals[this.myNo].monthIP += val

@@ -1,41 +1,77 @@
 <template>
   <div id="cards">
     <div class="sm:flex p-4 h-2/3">
-      <div class="hidden sm:flex flex-col box p-2 flex-wrap w-1/5">
+      <div
+        v-if="selectedEffectSwitch === false"
+        class="box flex mb-5 flex-wrap"
+      >
         <div
           v-for="(card, idx) in cardList"
           :key="idx"
-          :class="{ aqua: isNew() < idx }"
-          class="list"
-          @click="selectedCard(idx)"
+          class="m-1"
+          :class="{ aqua: isNew() < idx, pink: selected === idx }"
         >
-          <div class="">{{ idx }} : {{ card.name }}</div>
+          <div class="p-1 text-xs" @click="selectedCard(idx)">
+            {{ idx }}
+          </div>
         </div>
       </div>
-      <input v-model="selected" type="number" class="sm:hidden box mb-5 px-4" />
-      <div v-if="cardList.length > 0" class="sm:ml-6 box p-3 sm:w-1/4">
-        {{ cardList[selected].name }}
+      <div v-else class="box mb-5 p-4">
+        <div class="flex mb-2">
+          <div class="m-1">
+            {{ selectedEffect.cid }}
+          </div>
+          <div class="m-1">
+            {{ selectedEffect.cname }}
+          </div>
+          <div class="m-1">-{{ selectedEffect.eid }}</div>
+          <div class="m-1">-{{ selectedEffect.efs }}</div>
+        </div>
 
+        <div class="flex">
+          <input
+            v-model.number="selectedEffect.efs[0]"
+            type="number"
+            class="mx-2 px-2 w-1/6 flex justify-center text-black box"
+          />
+          <input
+            v-model="selectedEffect.efs[1]"
+            type="number"
+            class="mx-2 px-2 w-1/6 flex justify-center text-black box"
+          />
+
+          <div class="box mx-2 px-2" @click="sendEffect()">更新</div>
+        </div>
+      </div>
+
+      <div v-if="cardList.length > 0" class="sm:ml-6 box p-3 sm:w-1/4 mb-5">
+        {{ selected }} : {{ cardList[selected].name }}
         <div
           v-for="(effect, idx2) in cardList[selected].effects"
           :key="idx2"
           class="box-2 mt-6 p-2 flex-col"
+          @click="effectsClicked(idx2)"
         >
-          <div class="">
-            {{ effect.count }}
+          <div class="flex items-center">
+            <div class="text-lg mr-2">
+              {{ effect.count }}
+            </div>
+            <div class="mr-3">
+              {{ effect.keywords[0] }}
+            </div>
+
+            <div v-if="eifExistCheck(idx2) === 1" class="">
+              {{ effects[selected][idx2].efs }}
+            </div>
           </div>
 
-          <div class="">
-            {{ effect.keywords[0] }}
-          </div>
-
-          <div class="">
+          <div class="text-sm">
             {{ effect.text }}
           </div>
         </div>
       </div>
 
-      <div class="hidden sm:flex flex-col ml-6 w-1/6">
+      <div class="flex flex-col sm:ml-6 sm:w-1/6">
         <div class="box mb-6 p-2" @click="getStorage(storageStatus)">
           {{ storageStatus }}
         </div>
@@ -51,32 +87,18 @@ export default {
       count: 0,
       storageStatus: '上書き',
       cards: [],
-      newCards: [
-        {
-          name: 'オウム',
-          effects: [
-            { count: 1, keywords: ['侵略'], text: '一体疲労させる。' },
-            {
-              count: 2,
-              keywords: ['強化'],
-              text: '同種を一体疲労させ、同種を生成する',
-            },
-            {
-              count: 3,
-              keywords: ['侵略'],
-              text: '10IP消費する。相手は侵略持ちを好きなだけ疲労させる。その後、疲労していない相手のカードの数だけ同種を獲得する。相手の反応持ちの数だけIPを獲得する。',
-            },
-            {
-              count: 3,
-              keywords: ['勝利'],
-              text: '同種を10枚所持している時。',
-            },
-          ],
-        },
-      ],
+      effects: [],
+      newCards: [],
 
       cardList: [],
       selected: 0,
+      selectedEffectSwitch: false,
+      selectedEffect: {
+        cid: 0,
+        eid: 0,
+        cname: '',
+        efs: [1, 0],
+      },
     }
   },
   watch: {
@@ -88,8 +110,23 @@ export default {
   mounted() {
     this.cardList = this.cardList.concat(this.deepCopy(this.newCards))
     console.log(this.deepCopy(this.newCards))
+    this.$fire.database.ref('effects').on('value', (snapshot) => {
+      this.effects = snapshot.val()
+    })
   },
   methods: {
+    effectsClicked(eid) {
+      this.selectedEffectSwitch = !this.selectedEffectSwitch
+      const cid = this.selected
+      this.selectedEffect.cid = cid
+      this.selectedEffect.eid = eid
+      this.selectedEffect.cname = this.cardList[cid].name
+    },
+    sendEffect() {
+      const info = this.selectedEffect
+      const send = { cname: info.cname, efs: info.efs }
+      this.$fire.database.ref('effects/' + info.cid + '/' + info.eid).set(send)
+    },
     selectedCard(cid) {
       this.selected = cid
     },
@@ -113,6 +150,18 @@ export default {
     isNew() {
       return this.cards.length - 1
     },
+    eifExistCheck(n) {
+      let pushCheck = 0
+      try {
+        if (this.effects[this.selected][n].efs.length > 1) {
+          pushCheck = 1
+        }
+        pushCheck = 1
+      } catch (error) {
+        pushCheck = 2
+      }
+      return pushCheck
+    },
   },
 }
 </script>
@@ -120,7 +169,7 @@ export default {
 #cards {
   color: rgb(207, 207, 207);
   background: rgb(32, 32, 32);
-  height: 100vh;
+  min-height: 100vh;
 }
 div {
   cursor: default;
@@ -144,5 +193,8 @@ div {
 }
 .aqua {
   color: aqua;
+}
+.pink {
+  color: rgb(234, 0, 255);
 }
 </style>
