@@ -3,7 +3,7 @@
     <div class="sm:flex p-4 h-2/3">
       <div
         v-if="selectedEffectSwitch === false"
-        class="box flex mb-5 flex-wrap"
+        class="box flex mb-5 flex-wrap p-2"
       >
         <div
           v-for="(card, idx) in cardList"
@@ -18,14 +18,14 @@
       </div>
       <div v-else class="box mb-5 p-4">
         <div class="flex mb-2">
-          <div class="m-1">
+          <div class="mx-1">
             {{ selectedEffect.cid }}
           </div>
-          <div class="m-1">
+          <div class="mx-1">
             {{ selectedEffect.cname }}
           </div>
-          <div class="m-1">-{{ selectedEffect.eid }}</div>
-          <div class="m-1">-{{ selectedEffect.efs }}</div>
+          <div class="mx-1">-{{ selectedEffect.eid }}</div>
+          <div class="mx-1">-{{ selectedEffect.efs }}</div>
         </div>
 
         <div class="flex">
@@ -35,7 +35,7 @@
             class="mx-2 px-2 w-1/6 flex justify-center text-black box"
           />
           <input
-            v-model="selectedEffect.efs[1]"
+            v-model.number="selectedEffect.efs[1]"
             type="number"
             class="mx-2 px-2 w-1/6 flex justify-center text-black box"
           />
@@ -97,7 +97,7 @@ export default {
         cid: 0,
         eid: 0,
         cname: '',
-        efs: [1, 0],
+        efs: [0, 99, 99],
       },
     }
   },
@@ -124,7 +124,8 @@ export default {
     },
     sendEffect() {
       const info = this.selectedEffect
-      const send = { cname: info.cname, efs: info.efs }
+      const count = this.cards[info.cid].effects[info.eid].count
+      const send = { cname: info.cname, ccount: count, efs: info.efs }
       this.$fire.database.ref('effects/' + info.cid + '/' + info.eid).set(send)
     },
     selectedCard(cid) {

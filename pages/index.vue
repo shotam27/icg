@@ -1,11 +1,7 @@
 <template>
   <div id="app" class="w-full">
-    <EffectsComponent />
     <div class="ml-4 mb-4">
-      <div class="text-lg">
-        IKIMONO CARD GAME v0.0.7 - {{ gameVals.logNo }} - {{ countTest }}
-      </div>
-      <div @click="ct2plus()">{{ ct2 }}</div>
+      <div class="text-lg">IKIMONO CARD GAME v0.1.0 - {{ gameVals.logNo }}</div>
       <hr class="hidden sm:flex" />
     </div>
 
@@ -91,25 +87,38 @@
 
           <hr />
 
-          <div class="px-1 mt-4 text-xs">
-            {{ phaseMessage }}
+          <div class="">
+            <div class="px-1 mt-4 text-xs">
+              {{ phaseMessage }}
+            </div>
+
+            <div
+              class="c-3 mt-2 flex justify-center px-2"
+              :class="{
+                selected: buttonMessage !== '通信待機中...',
+              }"
+              @click="phaseIncrement"
+            >
+              {{ buttonMessage }}
+            </div>
+            <div
+              v-if="clPhase === 2"
+              class="c-3 mt-4 flex justify-center px-2 selected"
+              @click="doubleDenied()"
+            >
+              W獲得しない
+            </div>
           </div>
 
-          <div
-            class="c-3 mt-2 flex justify-center px-2"
-            :class="{
-              selected: buttonMessage !== '通信待機中...',
-            }"
-            @click="phaseIncrement"
-          >
-            {{ buttonMessage }}
-          </div>
-          <div
-            v-if="clPhase === 2"
-            class="c-3 mt-4 flex justify-center px-2 selected"
-            @click="doubleDenied()"
-          >
-            W獲得しない
+          <div class="">
+            <EffectsComponent
+              :selected="selected"
+              :myno="myNo"
+              :opno="opNo"
+              :myfid="myFid"
+              :opfid="opFid"
+              :myflag="gameVals.pVals[myNo].eFlags"
+            />
           </div>
         </div>
         <div class="hidden sm:flex mt-64 text-xs">
@@ -171,21 +180,22 @@
               <div
                 v-for="(effect, idx3) in cards[selected.cardId].effects"
                 :key="idx3"
-                class="mb-2"
+                class="mb-2 px-3"
                 :class="{
                   disabled: countCards() < effect.count,
+                  on: selected.keyword.placeId == idx3,
                 }"
+                @click="onClickEffect(effect.keywords[0], idx3)"
               >
                 <div class="mt-2 flex item-center">
                   <div class="mr-2 text-s min-w-max">
                     {{ effect.count }}枚時
                   </div>
                   <div
-                    class="px-1 w-10 text-xs c-3 flex align-center items-center justify-center"
+                    class="px-1 text-xs c-3 flex align-center items-center justify-center"
                     :class="{
                       disabled: countCards() < effect.count,
                     }"
-                    @click="showKeywordText(effect.keywords[0], idx3)"
                   >
                     {{ effect.keywords[0] }}
                   </div>
@@ -193,7 +203,7 @@
 
                 <div
                   v-if="selected.keyword.placeId == idx3"
-                  class="text-xs mt-1 c-3 p-2"
+                  class="text-xs mt-1 px-2"
                   :class="{
                     disabled: countCards() < effect.count,
                   }"
@@ -320,7 +330,7 @@ export default {
             selectedPlace: 0,
             usingIP: 0,
             phase: 0,
-            effectFlags: [],
+            eFlags: [0, 99, 99],
           },
           {
             name: '',
@@ -330,7 +340,7 @@ export default {
             selectedPlace: 0,
             usingIP: 0,
             phase: 0,
-            effectFlags: [],
+            eFlags: [0, 99, 99],
           },
         ],
         logNo: 0,
@@ -370,7 +380,32 @@ export default {
             cards: [],
           },
         ],
-        gameVals: {},
+        gameVals: {
+          pVals: [
+            {
+              name: '',
+              monthIP: 10,
+              purseIP: 10,
+              selected: 0,
+              selectedPlace: 0,
+              usingIP: 0,
+              phase: 0,
+              eFlags: [0, 99, 99],
+            },
+            {
+              name: '',
+              monthIP: 10,
+              purseIP: 10,
+              selected: 0,
+              selectedPlace: 0,
+              usingIP: 0,
+              phase: 0,
+              eFlags: [0, 99, 99],
+            },
+          ],
+          logNo: 0,
+          gameEndFlag: 0,
+        },
       },
 
       clPhase: 0,
@@ -380,6 +415,7 @@ export default {
       hideGy: true,
 
       actions: ['獲得', '疲労', '破棄', '追放', 'フン'],
+      defActions: ['獲得', '疲労', '破棄', '追放', 'フン'],
       neFieldTired: [0, 0, 0, 0, 0, 0],
 
       resetFlag: false,
@@ -585,12 +621,7 @@ export default {
       this.sendMyVals()
     },
   },
-  created() {
-    this.inits.gameVals = Object.assign({}, this.gameVals)
-  },
   mounted() {
-    // RealtimeDatabaseの更新を検知
-
     this.$fire.database.ref('cards').once('value', (snapshot) => {
       this.cardPool = snapshot.val()
     })
@@ -605,6 +636,9 @@ export default {
     })
   },
   methods: {
+    fbSet(db, setter) {
+      this.$fire.database.ref(db).set(setter)
+    },
     changeIP(morc, val) {
       if (morc === 0) {
         this.gameVals.pVals[this.myNo].monthIP += val
@@ -636,7 +670,7 @@ export default {
     reset() {
       this.hideWin()
       this.$fire.database.ref('gameVals').set(this.inits.gameVals)
-      this.$fire.database.ref('resetFlag').set(this.resetFlag)
+      this.$fire.database.ref('resetFlag').set(!this.resetFlag)
     },
     doubleDenied() {
       this.gameVals.pVals[this.opNo].purseIP -=
@@ -698,6 +732,12 @@ export default {
         this.$fire.database.ref('gameVals/gameEndFlag').set(1)
         this.showWin()
       }
+      if (n === '発動') {
+        this.fbSet('fields/' + f + '/cards/' + p + '/tired', true)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myNo + '/eFlags')
+          .set([1, this.selected.cardId, this.selected.keyword.placeId])
+      }
       this.$fire.database.ref('fields').set(this.fields)
       const newLogNo = this.gameVals.logNo + 1
       this.$fire.database.ref('gameVals/logNo').set(newLogNo)
@@ -729,6 +769,7 @@ export default {
       this.selected.cardId = c
       this.selected.cardPlace = p
       this.selected.cardName = this.cards[c].name
+      this.actions = this.defActions
     },
     showGy() {
       this.hideGy = !this.hideGy
@@ -765,7 +806,7 @@ export default {
       }
       return count
     },
-    showKeywordText(n, p) {
+    onClickEffect(n, p) {
       this.selected.keyword.name = n
       this.selected.keyword.placeId = p
       const k = this.keywords
@@ -773,6 +814,27 @@ export default {
         if (n === k[i].name) {
           this.selected.keyword.text = k[i].text
         }
+      }
+      const pid = this.selected.cardPlace
+      const fid = this.selected.fieldId
+      const cc = this.cards[this.selected.cardId].effects[p].count
+      let cnt = 0
+      if (fid === this.myFid) {
+        cnt++
+        console.log(1)
+      }
+      if (this.fields[fid].cards[pid].tired === false) {
+        cnt++
+        console.log(2)
+      }
+      if (cc === this.countCards()) {
+        cnt++
+        console.log(3)
+      }
+      if (cnt === 3) {
+        this.actions = this.defActions.concat('発動')
+      } else {
+        this.actions = this.defActions
       }
     },
     denyLose() {
@@ -938,5 +1000,8 @@ hr {
 .disabled {
   border-color: #a5a29b;
   color: #a5a29b;
+}
+.on {
+  transform: scale(1.05);
 }
 </style>
