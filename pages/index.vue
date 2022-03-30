@@ -262,7 +262,7 @@ export default {
       keywords: [
         {
           name: '勝利',
-          text: '発動条件を満たす時、このカードを披露させて勝利する。',
+          text: '発動条件を満たす時、このカードを疲労させて勝利する。',
         },
         {
           name: '侵略',
@@ -283,6 +283,10 @@ export default {
         {
           name: '水棲',
           text: '効果に記載のタイミングで発動する。記載がなければ疲労しない。',
+        },
+        {
+          name: '獲得時',
+          text: '中立から獲得したタイミングで発動する。「生成時」は対象外。',
         },
       ],
       tokens: [
@@ -700,7 +704,11 @@ export default {
       const newCard = { cid: c, tired: true }
       this.cardPushCheck(this.myFid)
       this.fields[this.myFid].cards.push(newCard)
+      // 獲得時効果の誘発
       this.sendFieldById(this.myFid)
+      this.$fire.database
+        .ref('gameVals/pVals/' + this.myNo + '/eFlags/0')
+        .set(10)
     },
     actionClick(n) {
       const f = this.selected.fieldId
