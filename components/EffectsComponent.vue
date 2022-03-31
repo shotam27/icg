@@ -86,12 +86,15 @@ export default {
         const cid = n[1]
         // 効果総当たり
         let ii = 0
+        console.log()
+        console.log(this.cards[cid])
         while (ii < this.cards[cid].effects.length) {
           if (this.cards[cid].effects[ii].count <= arr[cid]) {
             this.gainEffectsSorter(10, cid, ii)
           }
           ii++
         }
+        this.effectEnd()
       }
     },
   },
@@ -130,8 +133,12 @@ export default {
       }
       if (e[1] === 2) {
         if (e[0] === 1) {
-          // 一匹疲労させる。
+          // 中立にある同種を回復する
           this.eHealNeSelf(cid)
+        }
+        if (e[0] === 2) {
+          // このカードを回復する
+          this.eHealSelf()
         }
       }
     },
@@ -204,12 +211,21 @@ export default {
       const f = this.fields[1].cards
       let i = 0
       while (i < f.length) {
-        console.log(i + 'while2' + cid)
         if (f[i].cid === cid) {
           this.tire(1, i, false)
         }
         i++
       }
+      this.effectEnd()
+    },
+    eHealSelf() {
+      const f = this.fields[this.myfid].cards
+      const p = f.length - 1
+      console.log('hi')
+      console.log(p)
+
+      this.tire(this.myfid, p, false)
+      this.effectEnd()
     },
   },
 }

@@ -707,8 +707,9 @@ export default {
       // 獲得時効果の誘発
       this.sendFieldById(this.myFid)
       this.$fire.database
-        .ref('gameVals/pVals/' + this.myNo + '/eFlags/0')
-        .set(10)
+        .ref('gameVals/pVals/' + this.myNo + '/eFlags')
+        .set([10, c, 99])
+      console.log('when gain' + c)
     },
     actionClick(n) {
       const f = this.selected.fieldId
