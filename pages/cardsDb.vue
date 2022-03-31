@@ -17,15 +17,14 @@
         </div>
       </div>
       <div v-else class="box mb-5 p-4">
-        <div class="flex mb-2">
-          <div class="mx-1">
-            {{ selectedEffect.cid }}
-          </div>
+        <div class="flex mb-2 items-end">
           <div class="mx-1">
             {{ selectedEffect.cname }}
           </div>
-          <div class="mx-1">-{{ selectedEffect.eid }}</div>
-          <div class="mx-1">-{{ selectedEffect.efs }}</div>
+          <div class="mx-1 ml-2">eid:{{ selectedEffect.eid }}</div>
+          <div class="mx-1 text-xs">効果id:{{ selectedEffect.efs[0] }}</div>
+          <div class="mx-1 text-xs">発動id:{{ selectedEffect.efs[1] }}</div>
+          <div class="mx-1 text-xs">引数:{{ selectedEffect.efs[2] }}</div>
         </div>
 
         <div class="flex">
@@ -36,6 +35,11 @@
           />
           <input
             v-model.number="selectedEffect.efs[1]"
+            type="number"
+            class="mx-2 px-2 w-1/6 flex justify-center text-black box"
+          />
+          <input
+            v-model.number="selectedEffect.efs[2]"
             type="number"
             class="mx-2 px-2 w-1/6 flex justify-center text-black box"
           />
@@ -75,7 +79,7 @@
         <div class="box mb-6 p-2" @click="getStorage(storageStatus)">
           {{ storageStatus }}
         </div>
-        <div class="box mb-6 p-2" @click="submit()">更新</div>
+        <div class="box mb-6 p-2 hidden sm:flex" @click="submit()">更新</div>
       </div>
     </div>
   </div>
@@ -97,7 +101,7 @@ export default {
         cid: 0,
         eid: 0,
         cname: '',
-        efs: [0, 99, 99],
+        efs: [0, 0, 99],
       },
     }
   },

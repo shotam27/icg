@@ -1,11 +1,19 @@
 <template>
   <div class="">
-    <div class="">
+    <div class="text-xs mt-2">
       {{ myflag }}
     </div>
 
-    <div class="c-3 flex justify-center" @click="phaseIncrement()">送信</div>
-    <div class="c-3 flex justify-center" @click="effectEnd()">キャンセル</div>
+    <div class="">
+      {{ message }}
+    </div>
+
+    <div class="c-3 flex justify-center mt-2" @click="phaseIncrement()">
+      送信
+    </div>
+    <div class="c-3 flex justify-center mt-2" @click="effectEnd()">
+      キャンセル
+    </div>
   </div>
 </template>
 
@@ -57,7 +65,6 @@ export default {
     deep: true,
     myflag(n) {
       let e = []
-      const f = this.fields[this.myfid].cards
       try {
         e = this.effects[n[1]][n[2]].efs
       } catch (error) {
@@ -75,20 +82,15 @@ export default {
         }
       } else if (n[0] === 10) {
         // 獲得時系
-        let i = 0
         const arr = this.getCardCountArray(this.myfid)
-        console.log(arr)
-        // 総当たり
-        while (i <= f.length) {
-          const cid = f[i].cid
-          let ii = 0
-          while (ii <= this.cards[cid].effects.length) {
-            if (this.cards[cid].effects[ii].count <= arr[i]) {
-              this.gainEffectsSorter(10, cid, ii)
-            }
-            ii++
+        const cid = n[1]
+        // 効果総当たり
+        let ii = 0
+        while (ii < this.cards[cid].effects.length) {
+          if (this.cards[cid].effects[ii].count <= arr[cid]) {
+            this.gainEffectsSorter(10, cid, ii)
           }
-          i++
+          ii++
         }
       }
     },
@@ -147,19 +149,18 @@ export default {
     getCardCountArray(fid) {
       const cards = this.fields[fid].cards
       let i = 0
-      let arr = {}
+      const arr = []
       const cnt = {}
-      while (i <= cards.length) {
+      while (i < cards.length) {
         const c = cards[i].cid
-        arr = arr.concat(c)
         if (arr.includes(c)) {
           cnt[c]++
         } else {
           cnt[c] = 1
         }
+        arr.push(c)
         i++
       }
-      console.log(cnt)
       return cnt
     },
     tire(fid, pid, tireOrHeal) {
@@ -202,7 +203,8 @@ export default {
     eHealNeSelf(cid) {
       const f = this.fields[1].cards
       let i = 0
-      while (i <= f.length) {
+      while (i < f.length) {
+        console.log(i + 'while2' + cid)
         if (f[i].cid === cid) {
           this.tire(1, i, false)
         }
