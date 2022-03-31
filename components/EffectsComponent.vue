@@ -63,7 +63,7 @@ export default {
       } catch (error) {
         e = [0, 0]
       }
-      if (n[0] > 9) {
+      if (n[0] < 9) {
         // 疲労発動系
         if (e[0] === 1) {
           // 一匹疲労させる。
