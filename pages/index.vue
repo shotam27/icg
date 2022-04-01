@@ -118,6 +118,7 @@
               :myfid="myFid"
               :opfid="opFid"
               :myflag="gameVals.pVals[myNo].eFlags"
+              :cards="cards"
             />
           </div>
         </div>
@@ -709,7 +710,6 @@ export default {
       this.$fire.database
         .ref('gameVals/pVals/' + this.myNo + '/eFlags')
         .set([10, c, 99])
-      console.log('when gain' + c)
     },
     actionClick(n) {
       const f = this.selected.fieldId

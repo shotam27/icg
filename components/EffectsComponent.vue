@@ -47,11 +47,12 @@ export default {
         return [0, 99, 99]
       },
     },
+    // eslint-disable-next-line vue/require-default-prop
+    cards: { type: Array },
   },
 
   data() {
     return {
-      cards: [],
       fields: [],
       gameVals: [],
       effects: [],
@@ -86,7 +87,6 @@ export default {
         const cid = n[1]
         // 効果総当たり
         let ii = 0
-        console.log()
         console.log(this.cards[cid])
         while (ii < this.cards[cid].effects.length) {
           if (this.cards[cid].effects[ii].count <= arr[cid]) {
@@ -101,9 +101,6 @@ export default {
   mounted() {
     this.$fire.database.ref('fields').on('value', (snapshot) => {
       this.fields = snapshot.val()
-    })
-    this.$fire.database.ref('cards').on('value', (snapshot) => {
-      this.cards = snapshot.val()
     })
     this.$fire.database.ref('gameVals').on('value', (snapshot) => {
       this.gameVals = snapshot.val()
@@ -139,6 +136,11 @@ export default {
         if (e[0] === 2) {
           // このカードを回復する
           this.eHealSelf()
+        }
+        if (e[0] === 3) {
+          // IPe[2]獲得する。
+          console.log('hihi')
+          this.purseIpAdd(this.myno, e[2])
         }
       }
     },
@@ -179,6 +181,12 @@ export default {
       const newCard = { cid: ncid, tired: true }
       const newCards = this.fields[fid].cards.concat(newCard)
       this.$fire.database.ref('fields/' + fid + '/cards').set(newCards)
+    },
+    purseIpAdd(userNo, n) {
+      const newVal = this.gameVals.pVals[userNo].purseIP + n
+      this.$fire.database
+        .ref('gameVals/pVals/' + userNo + '/purseIP')
+        .set(newVal)
     },
     // 効果function
     eTire(p) {
@@ -225,7 +233,6 @@ export default {
       console.log(p)
 
       this.tire(this.myfid, p, false)
-      this.effectEnd()
     },
   },
 }
