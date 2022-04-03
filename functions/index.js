@@ -19,7 +19,7 @@ exports.resetGame = functions.database.ref("resetFlag")
         {"name": "追放"}];
       let max = cards.length;
       if (max === 0) {
-        max = 22;
+        max = 23;
       }
       const newCids = difRandoms(max, 6);
       for (let i = 0; i <= 5; i++) {

@@ -1,8 +1,6 @@
 <template>
   <div class="">
-    <div class="text-xs mt-2">
-      {{ myflag }}
-    </div>
+    <div class="text-xs mt-2">効果フラグ:{{ myflag }}</div>
 
     <div class="">
       {{ message }}
@@ -47,8 +45,11 @@ export default {
         return [0, 99, 99]
       },
     },
-    // eslint-disable-next-line vue/require-default-prop
-    cards: { type: Array },
+    cardsjson: {
+      type: String,
+      default: '',
+    },
+    tidstart: { type: Number, default: 99 },
   },
 
   data() {
@@ -57,6 +58,7 @@ export default {
       gameVals: [],
       effects: [],
       eFlags: [],
+      cards: [],
 
       message: '',
       phase: 0,
@@ -64,6 +66,11 @@ export default {
   },
   watch: {
     deep: true,
+    cardsjson(n) {
+      console.log('parse')
+      this.cards = JSON.parse(n)
+      console.log(this.cards)
+    },
     myflag(n) {
       let e = []
       try {
@@ -71,7 +78,7 @@ export default {
       } catch (error) {
         e = [0, 0]
       }
-      if (n[0] < 9) {
+      if (n[0] < 10) {
         // 疲労発動系
         if (e[0] === 1) {
           // 一匹疲労させる。
@@ -80,14 +87,19 @@ export default {
           // 同種を一枚疲労させ、
           // 同種を一枚生成する。
           this.eCreate(n[0])
+        } else if (e[0] === 3) {
+          // フントークンを生成する。
+          if (n[0] === 1) {
+            this.create(this.myfid, this.tidstart)
+            this.effectEnd()
+          }
         }
       } else if (n[0] === 10) {
-        // 獲得時系
+        // 獲得時系司令
         const arr = this.getCardCountArray(this.myfid)
         const cid = n[1]
         // 効果総当たり
         let ii = 0
-        console.log(this.cards[cid])
         while (ii < this.cards[cid].effects.length) {
           if (this.cards[cid].effects[ii].count <= arr[cid]) {
             this.gainEffectsSorter(10, cid, ii)
@@ -95,6 +107,20 @@ export default {
           ii++
         }
         this.effectEnd()
+      } else if (n[0] === 20) {
+        // 反応系司令
+
+        const c = this.countCardsByKeyword('反応', this.myfid, true)
+        console.log(c)
+        if (c === 0) {
+          this.$fire.database
+            .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
+            .set(1)
+          this.effectEnd()
+        } else {
+          this.message =
+            '反応持ちを発動できます。しない場合はキャンセルしてください。'
+        }
       }
     },
   },
@@ -139,8 +165,11 @@ export default {
         }
         if (e[0] === 3) {
           // IPe[2]獲得する。
-          console.log('hihi')
           this.purseIpAdd(this.myno, e[2])
+        }
+        if (e[0] === 4) {
+          // 月次IPe[2]獲得する。
+          this.monthIpAdd(this.myno, e[2])
         }
       }
     },
@@ -151,15 +180,29 @@ export default {
         .set(n)
     },
     effectEnd() {
-      this.$fire.database
-        .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
-        .set(0)
+      const n = this.myflag[0]
+      if (n >= 21 && n < 30) {
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(20)
+      } else if (n === 20) {
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
+          .set(1)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(0)
+      } else {
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(0)
+      }
     },
     getCardCountArray(fid) {
       const cards = this.fields[fid].cards
       let i = 0
       const arr = []
-      const cnt = {}
+      const cnt = []
       while (i < cards.length) {
         const c = cards[i].cid
         if (arr.includes(c)) {
@@ -171,6 +214,43 @@ export default {
         i++
       }
       return cnt
+    },
+    countCardsByKeyword(keyword, fid, notTiredOnly) {
+      const mycards = this.fields[fid].cards
+      const cc = this.getCardCountArray(fid)
+      let r = 0
+      let i = 0
+      let ii = 0
+      while (i < mycards.length) {
+        const cid = mycards[i].cid
+        const effects = this.cards[cid].effects
+        while (ii < effects.length) {
+          let cnt = 0
+          if (
+            effects[ii].count <= cc[cid] &&
+            effects[ii].keywords[0] === keyword
+          ) {
+            cnt++
+            console.log('cnt1')
+            console.log(cnt)
+          }
+          if (mycards[i].tired === false) {
+            cnt++
+            console.log('cnt2')
+            console.log(cnt)
+          }
+          let ckCnt = 1
+          if (notTiredOnly === true) {
+            ckCnt = 2
+          }
+          if (ckCnt <= cnt) {
+            r++
+          }
+          ii++
+        }
+        i++
+      }
+      return r
     },
     tire(fid, pid, tireOrHeal) {
       this.$fire.database
@@ -186,6 +266,12 @@ export default {
       const newVal = this.gameVals.pVals[userNo].purseIP + n
       this.$fire.database
         .ref('gameVals/pVals/' + userNo + '/purseIP')
+        .set(newVal)
+    },
+    monthIpAdd(userNo, n) {
+      const newVal = this.gameVals.pVals[userNo].monthIP + n
+      this.$fire.database
+        .ref('gameVals/pVals/' + userNo + '/monthIP')
         .set(newVal)
     },
     // 効果function
@@ -229,9 +315,6 @@ export default {
     eHealSelf() {
       const f = this.fields[this.myfid].cards
       const p = f.length - 1
-      console.log('hi')
-      console.log(p)
-
       this.tire(this.myfid, p, false)
     },
   },

@@ -17,14 +17,23 @@
         </div>
       </div>
       <div v-else class="box mb-5 p-4">
-        <div class="flex mb-2 items-end">
-          <div class="mx-1">
-            {{ selectedEffect.cname }}
+        <div class="mb-2">
+          <div class="flex">
+            <div class="mx-1">
+              {{ selectedEffect.cname }}
+            </div>
+            <div class="mx-1 ml-2">eid:{{ selectedEffect.eid }}</div>
           </div>
-          <div class="mx-1 ml-2">eid:{{ selectedEffect.eid }}</div>
-          <div class="mx-1 text-xs">効果id:{{ selectedEffect.efs[0] }}</div>
-          <div class="mx-1 text-xs">発動id:{{ selectedEffect.efs[1] }}</div>
-          <div class="mx-1 text-xs">引数:{{ selectedEffect.efs[2] }}</div>
+
+          <div class="flex">
+            <div class="mx-1 text-xs">
+              {{ showEid }}
+            </div>
+            <div class="mx-1 text-xs">
+              {{ showHid }}
+            </div>
+            <div class="mx-1 text-xs">引数:{{ selectedEffect.efs[2] }}</div>
+          </div>
         </div>
 
         <div class="flex">
@@ -103,13 +112,43 @@ export default {
         cname: '',
         efs: [0, 0, 99],
       },
+      showEid: '',
+      showHid: '',
+      eid: [
+        ['なし'],
+        ['なし', '一匹疲労', '一匹生成', 'フン生成'],
+        ['なし', '中立回復', '自身回復', 'nIP', 'nMIP'],
+      ],
+      hid: ['なし', '疲労発動系', '獲得時発動系'],
     }
+  },
+  computed: {
+    log() {
+      const n = this.selectedEffect.efs[0] + this.selectedEffect.efs[1]
+      return n
+    },
   },
   watch: {
     cards() {
       this.cardList = this.deepCopy(this.cards)
       this.cardList = this.cardList.concat(this.deepCopy(this.newCards))
     },
+    log() {
+      const newVals = this.selectedEffect
+      const h = newVals.efs[1]
+      const e = newVals.efs[0]
+      try {
+        this.showHid = this.hid[h]
+      } catch (error) {
+        this.showHid = 'なし'
+      }
+      try {
+        this.showEid = this.eid[h][e]
+      } catch (error) {
+        this.showEid = 'なし'
+      }
+    },
+    deep: true,
   },
   mounted() {
     this.cardList = this.cardList.concat(this.deepCopy(this.newCards))
@@ -172,8 +211,8 @@ export default {
 </script>
 <style scoped>
 #cards {
+  background-color: rgb(32, 32, 32);
   color: rgb(207, 207, 207);
-  background: rgb(32, 32, 32);
   min-height: 100vh;
 }
 div {
