@@ -50,22 +50,12 @@ export default {
       default: '',
     },
     tidstart: { type: Number, default: 99 },
-    fields: {
-      type: Array,
-      default() {
-        return []
-      },
-    },
-    gamevals: {
-      type: Array,
-      default() {
-        return []
-      },
-    },
   },
 
   data() {
     return {
+      fields: [],
+      gameVals: [],
       effects: [],
       eFlags: [],
       cards: [],
@@ -76,7 +66,9 @@ export default {
   watch: {
     deep: true,
     cardsjson(n) {
+      console.log('parse')
       this.cards = JSON.parse(n)
+      console.log(this.cards)
     },
     myflag(n) {
       let e = []
@@ -118,6 +110,7 @@ export default {
         // 反応系司令
 
         const c = this.countCardsByKeyword('反応', this.myfid, true)
+        console.log(c)
         if (c === 0) {
           this.$fire.database
             .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
@@ -131,6 +124,12 @@ export default {
     },
   },
   mounted() {
+    this.$fire.database.ref('fields').on('value', (snapshot) => {
+      this.fields = snapshot.val()
+    })
+    this.$fire.database.ref('gameVals').on('value', (snapshot) => {
+      this.gameVals = snapshot.val()
+    })
     this.$fire.database
       .ref('gameVals/pVals/0/eFlags')
       .on('value', (snapshot) => {
@@ -146,39 +145,6 @@ export default {
     })
   },
   methods: {
-    // 基本操作メソッド
-    fbSet(db, setter) {
-      this.$fire.database.ref('rooms/' + this.rid + '/game/' + db).set(setter)
-    },
-    tireCard(fid, pid, tireOrNot) {
-      const db = 'fields/' + fid + '/cards/' + pid + '/tired'
-      this.fbSet(db, tireOrNot)
-    },
-    deleteCard(f, p) {
-      const fCards = this.fields[f].cards
-      fCards.splice(p, 1)
-      const db = 'fields/' + f + '/cards'
-      this.fbSet(db, fCards)
-    },
-    pushCard(f, c) {
-      let fCards = this.fields[f].cards
-      if (fCards === false) {
-        fCards = []
-      }
-      const newCard = { cid: c, tired: true }
-      fCards.push(newCard)
-      const db = 'fields/' + f + '/cards'
-      this.fbSet(db, fCards)
-    },
-    gainCard(f, c, p) {
-      if (f === 1) {
-        this.tireCard(1, p, true)
-      }
-      this.pushCard(this.myfid, c)
-      // 獲得時効果の誘発
-      this.fbSet('gameVals/pVals/' + this.myno + '/eFlags', [10, c, 99])
-    },
-    // 以下固有メソッド
     gainEffectsSorter(phase, cid, eid) {
       const n = [phase, cid, eid]
       let e = []
@@ -206,22 +172,29 @@ export default {
         }
       }
     },
-    changeFlag(playerNo, n) {
-      this.fbSet('gameVals/pVals/' + playerNo + '/eFlags/0', n)
-    },
     phaseIncrement() {
       const n = this.myflag[0] + 1
-      this.changeFlag(this.myno, n)
+      this.$fire.database
+        .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+        .set(n)
     },
     effectEnd() {
       const n = this.myflag[0]
       if (n >= 21 && n < 30) {
-        this.changeFlag(this.myno, 20)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(20)
       } else if (n === 20) {
-        this.changeFlag(this.opno, 1)
-        this.changeFlag(this.myno, 0)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
+          .set(1)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(0)
       } else {
-        this.changeFlag(this.myno, 0)
+        this.$fire.database
+          .ref('gameVals/pVals/' + this.myno + '/eFlags/0')
+          .set(0)
       }
     },
     getCardCountArray(fid) {
@@ -257,9 +230,13 @@ export default {
             effects[ii].keywords[0] === keyword
           ) {
             cnt++
+            console.log('cnt1')
+            console.log(cnt)
           }
           if (mycards[i].tired === false) {
             cnt++
+            console.log('cnt2')
+            console.log(cnt)
           }
           let ckCnt = 1
           if (notTiredOnly === true) {
@@ -274,19 +251,24 @@ export default {
       }
       return r
     },
+    tire(fid, pid, tireOrHeal) {
+      this.$fire.database
+        .ref('fields/' + fid + '/cards/' + pid + '/tired')
+        .set(tireOrHeal)
+    },
     create(fid, ncid) {
       const newCard = { cid: ncid, tired: true }
       const newCards = this.fields[fid].cards.concat(newCard)
       this.$fire.database.ref('fields/' + fid + '/cards').set(newCards)
     },
     purseIpAdd(userNo, n) {
-      const newVal = this.gamevals.pVals[userNo].purseIP + n
+      const newVal = this.gameVals.pVals[userNo].purseIP + n
       this.$fire.database
         .ref('gameVals/pVals/' + userNo + '/purseIP')
         .set(newVal)
     },
     monthIpAdd(userNo, n) {
-      const newVal = this.gamevals.pVals[userNo].monthIP + n
+      const newVal = this.gameVals.pVals[userNo].monthIP + n
       this.$fire.database
         .ref('gameVals/pVals/' + userNo + '/monthIP')
         .set(newVal)
@@ -298,7 +280,7 @@ export default {
       }
       if (p === 2) {
         const pid = this.selected.cardPlace
-        this.tireCard(this.opfid, pid, true)
+        this.tire(this.opfid, pid, true)
         this.message = ''
         this.effectEnd()
       }
@@ -309,7 +291,7 @@ export default {
         let i = 0
         while (i <= f.length) {
           if (f[i].tired === false && f[i].cid === this.selected.cardId) {
-            this.tireCard(this.myfid, i, true)
+            this.tire(this.myfid, i, true)
             this.create(this.myfid, this.selected.cardId)
             break
           }
@@ -323,7 +305,7 @@ export default {
       let i = 0
       while (i < f.length) {
         if (f[i].cid === cid) {
-          this.tireCard(1, i, false)
+          this.tire(1, i, false)
         }
         i++
       }
@@ -332,7 +314,7 @@ export default {
     eHealSelf() {
       const f = this.fields[this.myfid].cards
       const p = f.length - 1
-      this.tireCard(this.myfid, p, false)
+      this.tire(this.myfid, p, false)
     },
   },
 }
