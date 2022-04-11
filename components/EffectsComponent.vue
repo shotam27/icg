@@ -97,7 +97,7 @@ export default {
         } else if (e[0] === 3) {
           // フントークンを生成する。
           if (n[0] === 1) {
-            this.create(this.myfid, this.tidstart)
+            this.pushCard(this.myfid, this.tidstart)
             this.effectEnd()
           }
         }
@@ -131,16 +131,6 @@ export default {
     },
   },
   mounted() {
-    this.$fire.database
-      .ref('gameVals/pVals/0/eFlags')
-      .on('value', (snapshot) => {
-        this.eFlags[0] = snapshot.val()
-      })
-    this.$fire.database
-      .ref('gameVals/pVals/1/eFlags')
-      .on('value', (snapshot) => {
-        this.eFlags[1] = snapshot.val()
-      })
     this.$fire.database.ref('effects').on('value', (snapshot) => {
       this.effects = snapshot.val()
     })
@@ -178,6 +168,38 @@ export default {
       // 獲得時効果の誘発
       this.fbSet('gameVals/pVals/' + this.myno + '/eFlags', [10, c, 99])
     },
+        changeMyVals(what, value) {
+      this.fbSet('gameVals/pVals/' + this.myno + '/' + what, value)
+    },
+    changeMyPhase(n) {
+      this.changeMyVals('phase', n)
+    },
+    addMyPhase(n) {
+      this.changeMyPhase(this.clphase + n)
+    },
+    setMyPurse(n) {
+      this.fbSet('gameVals/pVals/' + this.myno + '/purseIP', n)
+    },
+    changeIP(morc, val) {
+      if (morc === 0) {
+        const n = this.gameVals.pVals[this.myno].monthIP + val
+        this.changeMyVals('monthIP', n)
+      }
+      if (morc === 1) {
+        const n = this.gameVals.pVals[this.myno].purseIP + val
+        this.changeMyVals('purseIP', n)
+      }
+    },
+    addIP(morc, val) {
+      let old = 0
+      if (morc === 0) {
+        old = this.gameVals.pVals[this.myno].monthIP
+      } else {
+        old = this.gameVals.pVals[this.myno].purseIP
+      }
+      this.changeIP(morc, old + val)
+    },
+
     // 以下固有メソッド
     gainEffectsSorter(phase, cid, eid) {
       const n = [phase, cid, eid]
@@ -198,11 +220,11 @@ export default {
         }
         if (e[0] === 3) {
           // IPe[2]獲得する。
-          this.purseIpAdd(this.myno, e[2])
+          this.addIP(1,e[2])
         }
         if (e[0] === 4) {
           // 月次IPe[2]獲得する。
-          this.monthIpAdd(this.myno, e[2])
+                    this.addIP(0,e[2])
         }
       }
     },
@@ -274,11 +296,6 @@ export default {
       }
       return r
     },
-    create(fid, ncid) {
-      const newCard = { cid: ncid, tired: true }
-      const newCards = this.fields[fid].cards.concat(newCard)
-      this.$fire.database.ref('fields/' + fid + '/cards').set(newCards)
-    },
     purseIpAdd(userNo, n) {
       const newVal = this.gamevals.pVals[userNo].purseIP + n
       this.$fire.database
@@ -295,8 +312,7 @@ export default {
     eTire(p) {
       if (p === 1) {
         this.message = '疲労させるカードを選んでください。'
-      }
-      if (p === 2) {
+      } else if (p === 2) {
         const pid = this.selected.cardPlace
         this.tireCard(this.opfid, pid, true)
         this.message = ''
@@ -310,7 +326,7 @@ export default {
         while (i <= f.length) {
           if (f[i].tired === false && f[i].cid === this.selected.cardId) {
             this.tireCard(this.myfid, i, true)
-            this.create(this.myfid, this.selected.cardId)
+            this.pushCard(this.myfid, this.selected.cardId)
             break
           }
           i++
