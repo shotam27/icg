@@ -1,7 +1,9 @@
 <template>
   <div id="app" class="w-full">
     <div class="ml-4 mb-4">
-      <div class="text-lg">IKIMONO CARD GAME v0.2.0 - {{ gameVals.logNo }}</div>
+      <div class="text-lg">
+        IKIMONO CARD GAME v0.2.0 - {{ game.gameVals.logNo }}
+      </div>
 
       <div class="text-xs">room {{ rid }}</div>
 
@@ -228,6 +230,9 @@
             >
               {{ action }}
             </div>
+            <div class="c-3 mr-2 mb-2 px-2 py-1" @click="relatedClicked()">
+              {{ getRelated }}
+            </div>
           </div>
         </div>
       </Modal>
@@ -323,6 +328,7 @@ export default {
       cardPool: [],
       cards: [],
       cardsjson: [],
+      relatedCards: [],
 
       selected: {
         fieldId: 0,
@@ -369,6 +375,14 @@ export default {
       const f = this.game.gameVals.gameEndFlag
       return f
     },
+    getRelated() {
+      let r = '関連カードなし'
+      try {
+        const rcid = this.relatedCards[this.selected.cardId][0]
+        r = this.cards[rcid].name
+      } catch (error) {}
+      return r
+    },
   },
   watch: {
     deep: true,
@@ -376,7 +390,6 @@ export default {
       this.cards = this.deepCopy(this.cardPool)
       this.cards = this.cards.concat(this.deepCopy(this.tokens))
       this.cardsjson = JSON.stringify(this.cards)
-
       this.tidStart = this.cardPool.length
     },
     gameEndFlag(newVal, oldVal) {
@@ -517,8 +530,7 @@ export default {
         this.secondBatterFlag = 0
         this.phaseMessage = 'カードを選択し、支払うIPを指定してください'
         this.buttonMessage = '選出確定'
-        this.gameVals.pVals[this.myno].purseIP +=
-          this.gameVals.pVals[this.myno].monthIP
+        this.addIP(1, this.game.gameVals.pVals[this.myno].monthIP)
         if (this.cardPushCheck(this.myfid) === 1) {
           const cardLength = this.game.fields[this.myfid].cards.length
           for (let i = 0; i < cardLength; i++) {
@@ -535,6 +547,9 @@ export default {
   mounted() {
     this.$fire.database.ref('cards').once('value', (snapshot) => {
       this.cardPool = snapshot.val()
+    })
+    this.$fire.database.ref('relatedCards').once('value', (snapshot) => {
+      this.relatedCards = snapshot.val()
     })
     this.$fire.database.ref('resetFlag').on('value', (snapshot) => {
       this.resetFlag = snapshot.val()
@@ -602,6 +617,12 @@ export default {
         old = this.game.gameVals.pVals[this.myno].purseIP
       }
       this.changeIP(morc, old + val)
+    },
+    relatedClicked() {
+      const c = this.selected.cardId
+      try {
+        this.selected.cardId = this.relatedCards[c][0]
+      } catch (error) {}
     },
     phaseIncrement() {
       this.addMyPhase(1)
