@@ -35,6 +35,7 @@ export default {
         }
       },
     },
+    rid: { type: Number, default: 0 },
     myno: { type: Number, default: 0 },
     opno: { type: Number, default: 1 },
     myfid: { type: Number, default: 0 },
@@ -165,10 +166,8 @@ export default {
         this.tireCard(1, p, true)
       }
       this.pushCard(this.myfid, c)
-      // 獲得時効果の誘発
-      this.fbSet('gameVals/pVals/' + this.myno + '/eFlags', [10, c, 99])
     },
-        changeMyVals(what, value) {
+    changeMyVals(what, value) {
       this.fbSet('gameVals/pVals/' + this.myno + '/' + what, value)
     },
     changeMyPhase(n) {
@@ -220,11 +219,14 @@ export default {
         }
         if (e[0] === 3) {
           // IPe[2]獲得する。
-          this.addIP(1,e[2])
+          this.addIP(1, e[2])
         }
         if (e[0] === 4) {
           // 月次IPe[2]獲得する。
-                    this.addIP(0,e[2])
+          this.addIP(0, e[2])
+        }
+        if (e[0] === 5) {
+          this.eNeGainCard(e[2])
         }
       }
     },
@@ -296,18 +298,6 @@ export default {
       }
       return r
     },
-    purseIpAdd(userNo, n) {
-      const newVal = this.gamevals.pVals[userNo].purseIP + n
-      this.$fire.database
-        .ref('gameVals/pVals/' + userNo + '/purseIP')
-        .set(newVal)
-    },
-    monthIpAdd(userNo, n) {
-      const newVal = this.gamevals.pVals[userNo].monthIP + n
-      this.$fire.database
-        .ref('gameVals/pVals/' + userNo + '/monthIP')
-        .set(newVal)
-    },
     // 効果function
     eTire(p) {
       if (p === 1) {
@@ -349,6 +339,21 @@ export default {
       const f = this.fields[this.myfid].cards
       const p = f.length - 1
       this.tireCard(this.myfid, p, false)
+      this.effectEnd()
+    },
+    eNeGainCard(c) {
+      const f = this.fields[1].cards
+      let there = false
+      for (let i = 0; i < f.length; i++) {
+        if (f[i].cid === c) {
+          there = true
+        }
+      }
+      if (there === false) {
+        this.pushCard(1, c)
+      }
+      console.log('hi')
+      this.effectEnd()
     },
   },
 }

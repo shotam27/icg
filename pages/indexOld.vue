@@ -1,15 +1,20 @@
 <template>
   <div id="app" class="w-full">
     <div class="ml-4 mb-4">
-      <div class="text-lg">IKIMONO CARD GAME - {{ game.gameVals.logNo }}</div>
-
-      <div class="text-xs">room {{ rid }}</div>
-      <nuxt-link class="text-xs" to="/">もどる</nuxt-link>
+      <div class="text-lg">IKIMONO CARD GAME v0.1.2 - {{ gameVals.logNo }}</div>
       <hr class="hidden sm:flex" />
     </div>
 
     <div class="sm:flex justify-evenly w-full">
       <div class="left sm:w-1/4 sm:mr-4">
+        <div v-if="gameMaster === true" class="">
+          <div @click="reset()">reset</div>
+          <nuxt-link to="/cardsDb">db</nuxt-link>
+        </div>
+        <div v-if="selected.usingIP == 2727" class="" @click="chPl()">
+          CH PL
+        </div>
+
         <div class="left-container">
           <div class="hidden sm:flex justify-between">
             <div class="">PLAYER INFO</div>
@@ -17,43 +22,45 @@
 
           <hr class="hidden sm:flex" />
 
+          <div class="hidden sm:flex">you are : PLAYER {{ myNo + 1 }}</div>
+
           <div class="flex sm:flex-row">
             <div class="w-1/2">
-              <div class="mt-1">PLAYER {{ myno + 1 }}</div>
+              <div class="mt-1">PLAYER {{ myNo + 1 }}</div>
 
               <div class="flex items-center">
                 <div class="text-xs">増加 IP:</div>
-                <div class="">{{ game.gameVals.pVals[myno].monthIP }}</div>
+                <div class="">{{ gameVals.pVals[myNo].monthIP }}</div>
                 <div class="ml-2 text-xl" @click="changeIP(0, 1)">+</div>
                 <div class="ml-2 text-xl" @click="changeIP(0, -1)">-</div>
               </div>
 
               <div class="flex items-center">
                 <div class="text-xs">所持 IP:</div>
-                <div class="">{{ game.gameVals.pVals[myno].purseIP }}</div>
+                <div class="">{{ gameVals.pVals[myNo].purseIP }}</div>
                 <div class="ml-2 text-xl" @click="changeIP(1, 1)">+</div>
                 <div class="ml-2 text-xl" @click="changeIP(1, -1)">-</div>
               </div>
             </div>
             <div class="w-1/2">
-              <div class="mt-1">PLAYER {{ opno + 1 }}</div>
+              <div class="mt-1">PLAYER {{ opNo + 1 }}</div>
               <div class="flex items-center">
                 <div class="text-xs">増加 IP:</div>
-                <div class="">{{ game.gameVals.pVals[opno].monthIP }}</div>
+                <div class="">{{ gameVals.pVals[opNo].monthIP }}</div>
               </div>
               <div class="flex items-center">
                 <div class="text-xs">所持 IP:</div>
-                <div class="">{{ game.gameVals.pVals[opno].purseIP }}</div>
+                <div class="">{{ gameVals.pVals[opNo].purseIP }}</div>
               </div>
-              <div v-if="clphase > 1" class="">
+              <div v-if="clPhase > 1" class="">
                 <div class="flex flex-wrap">
                   <div class="text-xs">USED:</div>
-                  <div class="">{{ game.gameVals.pVals[opno].usingIP }}</div>
+                  <div class="">{{ gameVals.pVals[opNo].usingIP }}</div>
                 </div>
 
                 <div class="text-xs">CARD:</div>
                 <div class="">
-                  {{ cards[game.gameVals.pVals[opno].selected].name }}
+                  {{ cards[gameVals.pVals[opNo].selected].name }}
                 </div>
               </div>
             </div>
@@ -95,7 +102,7 @@
               {{ buttonMessage }}
             </div>
             <div
-              v-if="clphase === 2"
+              v-if="clPhase === 2"
               class="c-3 mt-4 flex justify-center px-2 selected"
               @click="doubleDenied()"
             >
@@ -106,29 +113,26 @@
           <div class="">
             <EffectsComponent
               :selected="selected"
-              :rid="rid"
-              :myno="myno"
-              :opno="opno"
-              :myfid="myfid"
-              :opfid="opfid"
-              :myflag="game.gameVals.pVals[myno].eFlags"
+              :myno="myNo"
+              :opno="opNo"
+              :myfid="myFid"
+              :opfid="opFid"
+              :myflag="gameVals.pVals[myNo].eFlags"
               :cardsjson="cardsjson"
               :tidstart="tidStart"
-              :fields="game.fields"
-              :gamevals="game.gameVals"
             />
           </div>
         </div>
         <div class="hidden sm:flex mt-64 text-xs">
-          Ph:{{ clphase }}-Cd:{{ game.gameVals.pVals[myno].selected }}-Ip:{{
-            game.gameVals.pVals[myno].usingIP
+          Ph:{{ clPhase }}-Cd:{{ gameVals.pVals[myNo].selected }}-Ip:{{
+            gameVals.pVals[myNo].usingIP
           }}
         </div>
       </div>
 
       <div v-if="cards.length > 0" class="center w-full">
         <div
-          v-for="(field, idx) in game.fields"
+          v-for="(field, idx) in fields"
           :key="idx"
           class="field mb-4 w-full"
         >
@@ -224,9 +228,6 @@
             >
               {{ action }}
             </div>
-            <div class="c-3 mr-2 mb-2 px-2 py-1" @click="relatedClicked()">
-              {{ getRelated }}
-            </div>
           </div>
         </div>
       </Modal>
@@ -256,23 +257,6 @@ import EffectsComponent from '~/components/EffectsComponent'
 export default {
   components: {
     EffectsComponent,
-  },
-  props: {
-    myno: { type: Number, default: 0 },
-    opno: { type: Number, default: 1 },
-    myfid: { type: Number, default: 0 },
-    opfid: { type: Number, default: 2 },
-    rid: { type: Number, default: 9999 },
-    game: {
-      type: Array,
-      default() {
-        return []
-      },
-    },
-    clphase: {
-      type: Number,
-      default: 0,
-    },
   },
   data() {
     return {
@@ -322,7 +306,53 @@ export default {
       cardPool: [],
       cards: [],
       cardsjson: [],
-      relatedCards: [],
+
+      // realtimeDB系
+
+      fields: [
+        {
+          name: 'Player1',
+          cards: [],
+        },
+        {
+          name: '中立',
+          cards: [],
+        },
+        {
+          name: 'Player2',
+          cards: [],
+        },
+        {
+          name: '追放',
+          cards: [],
+        },
+      ],
+      gameVals: {
+        pVals: [
+          {
+            name: '',
+            monthIP: 10,
+            purseIP: 10,
+            selected: 0,
+            selectedPlace: 0,
+            usingIP: 0,
+            phase: 0,
+            eFlags: [0, 99, 99],
+          },
+          {
+            name: '',
+            monthIP: 10,
+            purseIP: 10,
+            selected: 0,
+            selectedPlace: 0,
+            usingIP: 0,
+            phase: 0,
+            eFlags: [0, 99, 99],
+          },
+        ],
+        logNo: 0,
+        gameEndFlag: 0,
+      },
 
       selected: {
         fieldId: 0,
@@ -337,6 +367,56 @@ export default {
         },
       },
 
+      // 連携なし
+      inits: {
+        fields: [
+          {
+            name: 'Player1',
+            cards: [],
+          },
+          {
+            name: '中立',
+            cards: [],
+          },
+          {
+            name: 'Player2',
+            cards: [],
+          },
+          {
+            name: '追放',
+            cards: [],
+          },
+        ],
+        gameVals: {
+          pVals: [
+            {
+              name: '',
+              monthIP: 10,
+              purseIP: 10,
+              selected: 0,
+              selectedPlace: 0,
+              usingIP: 0,
+              phase: 0,
+              eFlags: [0, 99, 99],
+            },
+            {
+              name: '',
+              monthIP: 10,
+              purseIP: 10,
+              selected: 0,
+              selectedPlace: 0,
+              usingIP: 0,
+              phase: 0,
+              eFlags: [0, 99, 99],
+            },
+          ],
+          logNo: 0,
+          gameEndFlag: 0,
+        },
+      },
+
+      clPhase: 0,
+
       tidStart: 99,
 
       hideGy: true,
@@ -349,6 +429,10 @@ export default {
       win: false,
 
       gameMaster: false,
+      myNo: 1,
+      opNo: 0,
+      myFid: 2,
+      opFid: 0,
       alreadySelectedFlag: 0,
       secondBatterFlag: 0,
       buttonMessage: '選出確定',
@@ -358,24 +442,34 @@ export default {
   computed: {
     commuStopFlag() {
       // 通信待機完了スタンプ
-      const my = this.game.gameVals.pVals[this.myno].phase
-      const op = this.game.gameVals.pVals[this.opno].phase
+      const my = this.gameVals.pVals[this.myNo].phase
+      const op = this.gameVals.pVals[this.opNo].phase
       if (my === op && this.buttonMessage === '通信待機中...') {
         return 1
       }
       return 0
     },
     gameEndFlag() {
-      const f = this.game.gameVals.gameEndFlag
+      const f = this.gameVals.gameEndFlag
       return f
     },
-    getRelated() {
-      let r = '関連カードなし'
-      try {
-        const rcid = this.relatedCards[this.selected.cardId][0]
-        r = this.cards[rcid].name
-      } catch (error) {}
-      return r
+    getWin() {
+      const sel = this.selected
+      if (sel.fieldId !== this.myFid) {
+        return false
+      }
+      const c = sel.cardId
+      const cc = this.countCards()
+      let wc = 99
+      for (let i = 0; this.cards[c].effects[i].length; i++) {
+        if (this.cards[c].effects[i].keywords[0] === '勝利') {
+          wc = this.cards[c].effects[i].count
+        }
+      }
+      if (cc >= wc) {
+        return true
+      }
+      return false
     },
   },
   watch: {
@@ -384,6 +478,7 @@ export default {
       this.cards = this.deepCopy(this.cardPool)
       this.cards = this.cards.concat(this.deepCopy(this.tokens))
       this.cardsjson = JSON.stringify(this.cards)
+
       this.tidStart = this.cardPool.length
     },
     gameEndFlag(newVal, oldVal) {
@@ -397,7 +492,7 @@ export default {
     },
     commuStopFlag(newVal, oldVal) {
       if (newVal === 1 && oldVal === 0) {
-        this.addMyPhase(1)
+        this.clPhase++
       }
     },
     getWin(newVal) {
@@ -407,76 +502,83 @@ export default {
         this.actions = ['獲得', '疲労', '破棄', '追放']
       }
     },
-    clphase(newVal) {
-      const my = this.myno
-      const op = this.opno
+    clPhase(newVal) {
+      const my = this.myNo
+      const op = this.opNo
+      this.gameVals.pVals[my].phase = newVal
       if (newVal === 1) {
-        this.changeMyVals('selected', this.selected.cardId)
-        this.changeMyVals('selectedPlace', this.selected.cardPlace)
-        this.changeMyVals('usingIP', Number(this.selected.usingIP))
+        this.gameVals.pVals[this.myNo].selected = this.selected.cardId
+        this.gameVals.pVals[this.myNo].selectedPlace = this.selected.cardPlace
+        this.gameVals.pVals[this.myNo].usingIP = Number(this.selected.usingIP)
         this.buttonMessage = '通信待機中...'
       }
       if (newVal === 2) {
-        const myVal = this.game.gameVals.pVals[my]
-        const opVal = this.game.gameVals.pVals[op]
+        const myVal = this.gameVals.pVals[my]
+        const opVal = this.gameVals.pVals[op]
         if (myVal.selected !== opVal.selected) {
           const newMyPurseIp = myVal.purseIP - myVal.usingIP
           const newOpPurseIp = opVal.purseIP - opVal.usingIP
+
           if (
             myVal.usingIP > opVal.usingIP + 1 &&
             newMyPurseIp > opVal.usingIP
           ) {
-            this.addIP(1, -myVal.usingIP)
+            this.gameVals.pVals[my].purseIP -= myVal.usingIP
+            this.sendMyVals()
             this.buttonMessage = 'W獲得する'
             this.phaseMessage =
               '相手の「支払いIP」+1を払って相手のカードを獲得できます。'
             this.gainCard(
               1,
-              this.game.gameVals.pVals[my].selected,
-              this.game.gameVals.pVals[my].selectedPlace
+              this.gameVals.pVals[my].selected,
+              this.gameVals.pVals[my].selectedPlace
             )
             return
           } else if (
             opVal.usingIP > myVal.usingIP + 1 &&
             newOpPurseIp > myVal.usingIP
           ) {
-            this.changeMyPhase(4)
+            this.clPhase = 4
+            this.sendMyVals()
             return
           } else {
-            this.addIP(1, -myVal.usingIP)
+            this.gameVals.pVals[my].purseIP -= myVal.usingIP
+            this.sendMyVals()
             this.gainCard(
               1,
-              this.game.gameVals.pVals[my].selected,
-              this.game.gameVals.pVals[my].selectedPlace
+              this.gameVals.pVals[my].selected,
+              this.gameVals.pVals[my].selectedPlace
             )
           }
         } else if (myVal.usingIP > opVal.usingIP) {
           // 同種の場合多い方のみ処理
-          this.addIP(1, -myVal.usingIP)
+          this.gameVals.pVals[my].purseIP -= myVal.usingIP
+          this.sendMyVals()
           this.gainCard(
             1,
-            this.game.gameVals.pVals[my].selected,
-            this.game.gameVals.pVals[my].selectedPlace
+            this.gameVals.pVals[my].selected,
+            this.gameVals.pVals[my].selectedPlace
           )
         } else if (myVal.usingIP === opVal.usingIP) {
           // 同種同IPの場合、親が疲労させる
           if (my === 0) {
-            const pid = this.game.gameVals.pVals[my].selectedPlace
-            this.fbSet('fields/0/cards/' + pid + '/tired', true)
+            const pid = this.gameVals.pVals[my].selectedPlace
+            this.fbSet('fields/0/cards/' + pid + 'tired', true)
           }
         }
-        this.changeMyPhase(5)
+        this.clPhase = 5
       }
       if (newVal === 3) {
-        this.addIP(1, -this.game.gameVals.pVals[op].usingIP)
-        this.addIP(1, -1)
+        this.gameVals.pVals[my].purseIP -= this.gameVals.pVals[op].usingIP
+        this.gameVals.pVals[my].purseIP -= 1
+        this.sendMyVals()
         this.gainCard(
           1,
-          this.game.gameVals.pVals[op].selected,
-          this.game.gameVals.pVals[op].selectedPlace
+          this.gameVals.pVals[op].selected,
+          this.gameVals.pVals[op].selectedPlace
         )
         this.buttonMessage = '通信待機中...'
-        this.addMyPhase(1)
+        this.clPhase++
       }
       if (newVal === 4) {
         this.buttonMessage = '通信待機中...'
@@ -489,8 +591,8 @@ export default {
         this.buttonMessage = '通信待機中...'
       }
       if (newVal === 7) {
-        let myPurse = this.game.gameVals.pVals[my].purseIP
-        let opPurse = this.game.gameVals.pVals[op].purseIP
+        let myPurse = this.gameVals.pVals[my].purseIP
+        let opPurse = this.gameVals.pVals[op].purseIP
         if (myPurse === opPurse) {
           opPurse = opPurse + my
           myPurse = myPurse + op
@@ -500,7 +602,7 @@ export default {
           this.buttonMessage = 'ターン終了'
         } else {
           this.secondBatterFlag = 1
-          this.addMyPhase(1)
+          this.clPhase++
         }
       }
       if (newVal === 8) {
@@ -512,7 +614,7 @@ export default {
           this.phaseMessage = 'カードをプレイしてください'
           this.buttonMessage = 'ターン終了'
         } else {
-          this.addMyPhase(1)
+          this.clPhase++
         }
       }
       if (newVal === 10) {
@@ -523,25 +625,30 @@ export default {
         this.secondBatterFlag = 0
         this.phaseMessage = 'カードを選択し、支払うIPを指定してください'
         this.buttonMessage = '選出確定'
-        this.addIP(1, this.game.gameVals.pVals[this.myno].monthIP)
-        if (this.cardPushCheck(this.myfid) === 1) {
-          const cardLength = this.game.fields[this.myfid].cards.length
+        this.gameVals.pVals[this.myNo].purseIP +=
+          this.gameVals.pVals[this.myNo].monthIP
+        if (this.cardPushCheck(this.myFid) === 1) {
+          const cardLength = this.fields[this.myFid].cards.length
           for (let i = 0; i < cardLength; i++) {
-            this.tireCard(this.myfid, i, false)
+            this.fields[this.myFid].cards[i].tired = false
           }
-          this.sendFieldById(this.myfid)
+          this.sendFieldById(this.myFid)
         }
         this.neFieldTiredControll()
-        this.changeMyPhase(0)
+        this.clPhase = 0
       }
+      this.sendMyVals()
     },
   },
   mounted() {
     this.$fire.database.ref('cards').once('value', (snapshot) => {
       this.cardPool = snapshot.val()
     })
-    this.$fire.database.ref('relatedCards').once('value', (snapshot) => {
-      this.relatedCards = snapshot.val()
+    this.$fire.database.ref('fields').on('value', (snapshot) => {
+      this.fields = snapshot.val()
+    })
+    this.$fire.database.ref('gameVals').on('value', (snapshot) => {
+      this.gameVals = snapshot.val()
     })
     this.$fire.database.ref('resetFlag').on('value', (snapshot) => {
       this.resetFlag = snapshot.val()
@@ -549,92 +656,77 @@ export default {
   },
   methods: {
     fbSet(db, setter) {
-      this.$fire.database.ref('rooms/' + this.rid + '/game/' + db).set(setter)
-    },
-    tireCard(fid, pid, tireOrNot) {
-      const db = 'fields/' + fid + '/cards/' + pid + '/tired'
-      this.fbSet(db, tireOrNot)
-    },
-    deleteCard(f, p) {
-      const fCards = this.game.fields[f].cards
-      fCards.splice(p, 1)
-      const db = 'fields/' + f + '/cards'
-      this.fbSet(db, fCards)
-    },
-    pushCard(f, c) {
-      let fCards = this.game.fields[f].cards
-      if (fCards === false) {
-        fCards = []
-      }
-      const newCard = { cid: c, tired: true }
-      fCards.push(newCard)
-      const db = 'fields/' + f + '/cards'
-      this.fbSet(db, fCards)
-    },
-    gainCard(f, c, p) {
-      if (f === 1) {
-        this.tireCard(1, p, true)
-      }
-      this.pushCard(this.myfid, c)
-      // 獲得時効果の誘発
-      this.changeMyVals('eFlags', [10, c, 99])
-    },
-    changeMyVals(what, value) {
-      this.fbSet('gameVals/pVals/' + this.myno + '/' + what, value)
-    },
-    changeMyPhase(n) {
-      this.changeMyVals('phase', n)
-    },
-    addMyPhase(n) {
-      this.changeMyPhase(this.clphase + n)
+      this.$fire.database.ref(db).set(setter)
     },
     setMyPurse(n) {
-      this.fbSet('gameVals/pVals/' + this.myno + '/purseIP', n)
+      this.fbSet('gameVals/pVals/' + this.myNo + '/purseIP', n)
     },
     changeIP(morc, val) {
       if (morc === 0) {
-        const n = this.game.gameVals.pVals[this.myno].monthIP + val
-        this.changeMyVals('monthIP', n)
+        this.gameVals.pVals[this.myNo].monthIP += val
       }
       if (morc === 1) {
-        const n = this.game.gameVals.pVals[this.myno].purseIP + val
-        this.changeMyVals('purseIP', n)
+        this.gameVals.pVals[this.myNo].purseIP += val
       }
-    },
-    addIP(morc, val) {
-      let old = 0
-      if (morc === 0) {
-        old = this.game.gameVals.pVals[this.myno].monthIP
-      } else {
-        old = this.game.gameVals.pVals[this.myno].purseIP
-      }
-      this.changeIP(morc, old + val)
-    },
-    changeEflags(pNo, val) {
-      this.fbSet('gameVals/pVals/' + pNo + 'eFlags', val)
-    },
-
-    // component固有
-    relatedClicked() {
-      const c = this.selected.cardId
-      try {
-        this.selected.cardId = this.relatedCards[c][0]
-      } catch (error) {}
+      this.sendMyVals()
     },
     phaseIncrement() {
-      this.addMyPhase(1)
+      this.clPhase++
+    },
+    chPl() {
+      this.gameMaster = !this.gameMaster
+
+      if (this.gameMaster === true) {
+        this.myNo = 0
+        this.opNo = 1
+        this.myFid = 0
+        this.opFid = 2
+      } else {
+        this.myNo = 1
+        this.opNo = 0
+        this.myFid = 2
+        this.opFid = 0
+      }
+      this.fields[this.myFid].cards = []
+    },
+    reset() {
+      this.hideWin()
+      this.$fire.database.ref('gameVals').set(this.inits.gameVals)
+      this.$fire.database.ref('resetFlag').set(!this.resetFlag)
     },
     doubleDenied() {
-      this.fbSet(
-        'gameVals/pVals/' + this.opno + '/purseIP',
-        this.game.gameVals.pVals[this.opno].usingIP
-      )
-      this.changeMyPhase(4)
+      this.gameVals.pVals[this.opNo].purseIP -=
+        this.gameVals.pVals[this.opNo].usingIP
+      this.clPhase = 4
+    },
+    sendMyVals() {
+      this.$fire.database
+        .ref('gameVals/pVals/' + this.myNo)
+        .set(this.gameVals.pVals[this.myNo])
+
+      const newLogNo = this.gameVals.logNo + 1
+      this.$fire.database.ref('gameVals/logNo').set(newLogNo)
+    },
+    sendFieldById(fid) {
+      this.$fire.database.ref('fields/' + fid).set(this.fields[fid])
     },
     sendFields() {
-      this.sendFieldById(this.myfid)
+      this.sendFieldById(this.myFid)
       this.sendFieldById(1)
       this.sendFieldById(3)
+    },
+    gainCard(f, c, p) {
+      if (f === 1) {
+        this.$fire.database.ref('fields/1/cards/' + p + '/tired').set(true)
+      }
+      const newCard = { cid: c, tired: true }
+      this.cardPushCheck(this.myFid)
+      this.fields[this.myFid].cards.push(newCard)
+      // 獲得時効果の誘発
+      this.sendFieldById(this.myFid)
+      this.$fire.database
+        .ref('gameVals/pVals/' + this.myNo + '/eFlags')
+        .set([10, c, 99])
     },
     actionClick(n) {
       const f = this.selected.fieldId
@@ -645,17 +737,23 @@ export default {
         this.gainCard(f, c, p)
       }
       if (n === '疲労') {
-        const nt = !this.game.fields[f].cards[p].tired
-        this.tireCard(f, p, nt)
+        this.fields[f].cards[p].tired = !this.fields[f].cards[p].tired
       }
       if (n === '破棄') {
-        this.deleteCard(f, p)
+        this.fields[f].cards.splice(p, 1)
       }
       if (n === '追放') {
         if (f !== 1) {
-          this.deleteCard(f, p)
+          this.fields[f].cards.splice(p, 1)
         }
-        this.pushCard(3, c)
+        const newCard = { cid: c, tired: false }
+        this.cardPushCheck(3)
+        this.fields[3].cards.push(newCard)
+      }
+      if (n === '勝利') {
+        this.win = true
+        this.$fire.database.ref('gameVals/gameEndFlag').set(1)
+        this.showWin()
       }
       if (n === '発動') {
         this.fbSet('fields/' + f + '/cards/' + p + '/tired', true)
@@ -663,22 +761,21 @@ export default {
         const epid = this.selected.keyword.placeId
         const keyword = this.cards[cid].effects[epid].keywords[0]
         if (keyword === '侵略') {
-          this.changeEflags(this.opno, [20, cid, epid])
-          this.changeEflags(this.myno, [
-            0,
-            this.selected.cardId,
-            this.selected.keyword.placeId,
-          ])
+          this.$fire.database
+            .ref('gameVals/pVals/' + this.opNo + '/eFlags')
+            .set([20, cid, epid])
+          this.$fire.database
+            .ref('gameVals/pVals/' + this.myNo + '/eFlags')
+            .set([0, this.selected.cardId, this.selected.keyword.placeId])
         } else {
-          this.changeEflags(this.myno, [
-            1,
-            this.selected.cardId,
-            this.selected.keyword.placeId,
-          ])
+          this.$fire.database
+            .ref('gameVals/pVals/' + this.myNo + '/eFlags')
+            .set([1, this.selected.cardId, this.selected.keyword.placeId])
         }
       }
-      const newLogNo = this.game.gameVals.logNo + 1
-      this.fbSet('gameVals/logNo', newLogNo)
+      this.$fire.database.ref('fields').set(this.fields)
+      const newLogNo = this.gameVals.logNo + 1
+      this.$fire.database.ref('gameVals/logNo').set(newLogNo)
       this.hide()
     },
     onClick(f, c, p) {
@@ -715,20 +812,31 @@ export default {
     deepCopy(n) {
       return JSON.parse(JSON.stringify(n))
     },
+    cardPushCheck(fid) {
+      let pushCheck = 0
+      try {
+        if (this.fields[fid].cards.length > 0) {
+          pushCheck = 1
+        }
+      } catch (error) {
+        this.fields[fid].cards = []
+      }
+      return pushCheck
+    },
     countCards() {
       let count = 0
       const cid = this.selected.cardId
       const fid = this.selected.fieldId
-      const myfid = this.myfid
+      const myFid = this.myFid
 
       try {
-        for (let i = 0; i <= this.game.fields[myfid].cards.length; i++) {
-          if (this.game.fields[myfid].cards[i].cid === cid) {
+        for (let i = 0; i <= this.fields[myFid].cards.length; i++) {
+          if (this.fields[myFid].cards[i].cid === cid) {
             count++
           }
         }
       } catch (error) {}
-      if (fid !== myfid) {
+      if (fid !== myFid) {
         count++
       }
       return count
@@ -746,10 +854,10 @@ export default {
       const fid = this.selected.fieldId
       const cc = this.cards[this.selected.cardId].effects[p].count
       let cnt = 0
-      if (fid === this.myfid) {
+      if (fid === this.myFid) {
         cnt++
       }
-      if (this.game.fields[fid].cards[pid].tired === false) {
+      if (this.fields[fid].cards[pid].tired === false) {
         cnt++
       }
       if (cc <= this.countCards()) {
@@ -765,11 +873,13 @@ export default {
       this.$fire.database.ref('gameVals/gameEndFlag').set(0)
     },
     neFieldTiredControll() {
-      if (this.myno === 0) {
-        for (let i = 0; this.game.fields[1].cards.length > i; i++) {
-          if (this.game.fields[1].cards[i].tired === true) {
+      if (this.myNo === 0) {
+        for (let i = 0; this.fields[1].cards.length > i; i++) {
+          if (this.fields[1].cards[i].tired === true) {
             if (this.neFieldTired[i] === 1) {
-              this.tireCard(1, i, false)
+              this.$fire.database
+                .ref('fields/1/cards/' + i + '/tired')
+                .set(false)
               this.neFieldTired[i] = 0
             } else {
               this.neFieldTired[i] = 1

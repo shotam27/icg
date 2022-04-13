@@ -116,8 +116,8 @@ export default {
       relatedCards: [],
       effects: [],
       newCards: [],
-
       cardList: [],
+
       selected: 0,
       selectedEffectSwitch: false,
       selectedEffect: {
@@ -132,7 +132,7 @@ export default {
       eid: [
         ['なし'],
         ['なし', '一匹疲労', '一匹生成', 'フン生成'],
-        ['なし', '中立回復', '自身回復', 'nIP', 'nMIP'],
+        ['なし', '中立回復', '自身回復', 'nIP', 'nMIP', '中立獲得'],
       ],
       hid: ['なし', '疲労発動系', '獲得時発動系'],
     }
