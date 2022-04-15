@@ -58,9 +58,9 @@ export default {
       },
     },
     gamevals: {
-      type: Array,
+      type: Object,
       default() {
-        return []
+        return {}
       },
     },
   },
@@ -84,7 +84,7 @@ export default {
       try {
         e = this.effects[n[1]][n[2]].efs
       } catch (error) {
-        e = [0, 0]
+        e = [0, 0, 0]
       }
       if (n[0] < 10) {
         // 疲労発動系
@@ -115,7 +115,7 @@ export default {
           ii++
         }
         this.effectEnd()
-      } else if (n[0] === 20) {
+      } else if (n[0] >= 20) {
         // 反応系司令
 
         const c = this.countCardsByKeyword('反応', this.myfid, true)
@@ -124,9 +124,11 @@ export default {
             .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
             .set(1)
           this.effectEnd()
-        } else {
+        } else if (n[0] === 20) {
           this.message =
             '反応持ちを発動できます。しない場合はキャンセルしてください。'
+        } else if (n[0] >= 21) {
+          this.reactEffectsSorter(e)
         }
       }
     },
@@ -212,22 +214,30 @@ export default {
         if (e[0] === 1) {
           // 中立にある同種を回復する
           this.eHealNeSelf(cid)
-        }
-        if (e[0] === 2) {
+        } else if (e[0] === 2) {
           // このカードを回復する
           this.eHealSelf()
-        }
-        if (e[0] === 3) {
+        } else if (e[0] === 3) {
           // IPe[2]獲得する。
           this.addIP(1, e[2])
-        }
-        if (e[0] === 4) {
+          this.effectEnd()
+        } else if (e[0] === 4) {
           // 月次IPe[2]獲得する。
           this.addIP(0, e[2])
-        }
-        if (e[0] === 5) {
+          this.effectEnd()
+        } else if (e[0] === 5) {
+          // 中立にe[2]を生成する。
           this.eNeGainCard(e[2])
+        } else if (e[0] === 6) {
+          this.eKillOtherSpecies(cid)
         }
+      }
+    },
+    reactEffectSorter(e) {
+      if (e[0] === 1) {
+        // IPe[2]獲得する。
+        this.addIP(1, e[2])
+        this.effectEnd()
       }
     },
     changeFlag(playerNo, n) {
@@ -352,7 +362,17 @@ export default {
       if (there === false) {
         this.pushCard(1, c)
       }
-      console.log('hi')
+      this.effectEnd()
+    },
+    eKillOtherSpecies(c) {
+      const field = this.fields[this.myno].cards
+      const newField = []
+      for (let i = 0; field.length < i; i++) {
+        if (field[i].cid === c) {
+          newField.push(field[i])
+        }
+      }
+      this.fbSet('fields/' + this.myno + '/cards', newField)
       this.effectEnd()
     },
   },

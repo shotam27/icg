@@ -79,15 +79,34 @@
           @click="effectsClicked(idx2)"
         >
           <div class="flex items-center">
-            <div class="text-lg mr-2">
+            <div class="text-lg mr-2 text-red-400">
               {{ effect.count }}
             </div>
-            <div class="mr-3">
+            <div class="mr-4">
               {{ effect.keywords[0] }}
             </div>
 
-            <div v-if="eifExistCheck(idx2) === 1" class="">
-              {{ effects[selected][idx2].efs }}
+            <div
+              v-if="eifExistCheck(idx2) === 1"
+              class="text-xs mr-2 text-green-300"
+            >
+              {{ hid[effects[selected][idx2].efs[1]] }}
+            </div>
+            <div
+              v-if="eifExistCheck(idx2) === 1"
+              class="text-xs mr-2 text-blue-300"
+            >
+              {{
+                eid[effects[selected][idx2].efs[1]][
+                  effects[selected][idx2].efs[0]
+                ]
+              }}
+            </div>
+            <div
+              v-if="eifExistCheck(idx2) === 1"
+              class="text-xs mr-2 text-purple-300"
+            >
+              {{ effects[selected][idx2].efs[2] }}
             </div>
           </div>
 
@@ -132,9 +151,10 @@ export default {
       eid: [
         ['なし'],
         ['なし', '一匹疲労', '一匹生成', 'フン生成'],
-        ['なし', '中立回復', '自身回復', 'nIP', 'nMIP', '中立獲得'],
+        ['なし', '中立回復', '自身回復', 'nIP', 'nMIP', '中立獲得', '異種滅亡'],
+        ['なし', 'nIP'],
       ],
-      hid: ['なし', '疲労発動系', '獲得時発動系'],
+      hid: ['なし', '疲労発動系', '獲得時発動系', '反応系'],
     }
   },
   computed: {

@@ -264,9 +264,9 @@ export default {
     opfid: { type: Number, default: 2 },
     rid: { type: Number, default: 9999 },
     game: {
-      type: Array,
+      type: Object,
       default() {
-        return []
+        return {}
       },
     },
     clphase: {
@@ -284,7 +284,7 @@ export default {
         },
         {
           name: '侵略',
-          text: 'カードを疲労させて発動する。主に他のフィールドに影響を及ぼす。',
+          text: 'カードを疲労させて発動する。相手フィールドに影響を及ぼす。',
         },
         {
           name: '強化',
@@ -417,55 +417,58 @@ export default {
         this.buttonMessage = '通信待機中...'
       }
       if (newVal === 2) {
-        const myVal = this.game.gameVals.pVals[my]
-        const opVal = this.game.gameVals.pVals[op]
-        if (myVal.selected !== opVal.selected) {
-          const newMyPurseIp = myVal.purseIP - myVal.usingIP
-          const newOpPurseIp = opVal.purseIP - opVal.usingIP
-          if (
-            myVal.usingIP > opVal.usingIP + 1 &&
-            newMyPurseIp > opVal.usingIP
-          ) {
+        setTimeout(() => {
+          const myVal = this.game.gameVals.pVals[my]
+          const opVal = this.game.gameVals.pVals[op]
+          console.log(myVal.usingIP)
+          console.log(opVal.usingIP)
+          if (myVal.selected !== opVal.selected) {
+            const newMyPurseIp = myVal.purseIP - myVal.usingIP
+            const newOpPurseIp = opVal.purseIP - opVal.usingIP
+            const myLeastDouble = opVal.usingIP + 1
+            const opLeastDouble = myVal.usingIP + 1
+            if (myVal.usingIP > myLeastDouble && newMyPurseIp > opVal.usingIP) {
+              this.addIP(1, -myVal.usingIP)
+              this.buttonMessage = 'W獲得する'
+              this.phaseMessage =
+                '相手の「支払いIP」+1を払って相手のカードを獲得できます。'
+              this.gainCard(
+                1,
+                this.game.gameVals.pVals[my].selected,
+                this.game.gameVals.pVals[my].selectedPlace
+              )
+              return
+            } else if (
+              opVal.usingIP > opLeastDouble &&
+              newOpPurseIp > myVal.usingIP
+            ) {
+              this.changeMyPhase(4)
+              return
+            } else {
+              this.addIP(1, -myVal.usingIP)
+              this.gainCard(
+                1,
+                this.game.gameVals.pVals[my].selected,
+                this.game.gameVals.pVals[my].selectedPlace
+              )
+            }
+          } else if (myVal.usingIP > opVal.usingIP) {
+            // 同種の場合多い方のみ処理
             this.addIP(1, -myVal.usingIP)
-            this.buttonMessage = 'W獲得する'
-            this.phaseMessage =
-              '相手の「支払いIP」+1を払って相手のカードを獲得できます。'
             this.gainCard(
               1,
               this.game.gameVals.pVals[my].selected,
               this.game.gameVals.pVals[my].selectedPlace
             )
-            return
-          } else if (
-            opVal.usingIP > myVal.usingIP + 1 &&
-            newOpPurseIp > myVal.usingIP
-          ) {
-            this.changeMyPhase(4)
-            return
-          } else {
-            this.addIP(1, -myVal.usingIP)
-            this.gainCard(
-              1,
-              this.game.gameVals.pVals[my].selected,
-              this.game.gameVals.pVals[my].selectedPlace
-            )
+          } else if (myVal.usingIP === opVal.usingIP) {
+            // 同種同IPの場合、親が疲労させる
+            if (my === 0) {
+              const pid = this.game.gameVals.pVals[my].selectedPlace
+              this.fbSet('fields/0/cards/' + pid + '/tired', true)
+            }
           }
-        } else if (myVal.usingIP > opVal.usingIP) {
-          // 同種の場合多い方のみ処理
-          this.addIP(1, -myVal.usingIP)
-          this.gainCard(
-            1,
-            this.game.gameVals.pVals[my].selected,
-            this.game.gameVals.pVals[my].selectedPlace
-          )
-        } else if (myVal.usingIP === opVal.usingIP) {
-          // 同種同IPの場合、親が疲労させる
-          if (my === 0) {
-            const pid = this.game.gameVals.pVals[my].selectedPlace
-            this.fbSet('fields/0/cards/' + pid + '/tired', true)
-          }
-        }
-        this.changeMyPhase(5)
+          this.changeMyPhase(5)
+        }, 1000)
       }
       if (newVal === 3) {
         this.addIP(1, -this.game.gameVals.pVals[op].usingIP)
@@ -534,6 +537,7 @@ export default {
         this.neFieldTiredControll()
         this.changeMyPhase(0)
       }
+      this.addLogNo()
     },
   },
   mounted() {
@@ -611,7 +615,11 @@ export default {
       this.changeIP(morc, old + val)
     },
     changeEflags(pNo, val) {
-      this.fbSet('gameVals/pVals/' + pNo + 'eFlags', val)
+      this.fbSet('gameVals/pVals/' + pNo + '/eFlags', val)
+    },
+    addLogNo() {
+      const newLogNo = this.game.gameVals.logNo + 1
+      this.fbSet('gameVals/logNo', newLogNo)
     },
 
     // component固有
@@ -662,19 +670,15 @@ export default {
         const cid = this.selected.cardId
         const epid = this.selected.keyword.placeId
         const keyword = this.cards[cid].effects[epid].keywords[0]
-        if (keyword === '侵略') {
+        const myEflag = this.game.gameVals.pVals[this.myno].eFlags[0]
+
+        if (keyword === '反応' && myEflag === 20) {
+          this.changeEflags(this.myno, [21, cid, epid])
+        } else if (keyword === '侵略') {
           this.changeEflags(this.opno, [20, cid, epid])
-          this.changeEflags(this.myno, [
-            0,
-            this.selected.cardId,
-            this.selected.keyword.placeId,
-          ])
-        } else {
-          this.changeEflags(this.myno, [
-            1,
-            this.selected.cardId,
-            this.selected.keyword.placeId,
-          ])
+          this.changeEflags(this.myno, [0, cid, epid])
+        } else if (keyword === '強化') {
+          this.changeEflags(this.myno, [1, cid, epid])
         }
       }
       const newLogNo = this.game.gameVals.logNo + 1
