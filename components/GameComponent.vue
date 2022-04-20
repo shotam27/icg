@@ -80,44 +80,28 @@
 
           <hr />
 
-          <div class="">
-            <div class="px-1 mt-4 text-xs">
-              {{ phaseMessage }}
-            </div>
-
-            <div
-              class="c-3 mt-2 flex justify-center px-2"
-              :class="{
-                selected: buttonMessage !== '通信待機中...',
-              }"
-              @click="phaseIncrement"
-            >
-              {{ buttonMessage }}
-            </div>
-            <div
-              v-if="clphase === 2"
-              class="c-3 mt-4 flex justify-center px-2 selected"
-              @click="doubleDenied()"
-            >
-              W獲得しない
-            </div>
-          </div>
-
-          <div class="">
-            <EffectsComponent
-              :selected="selected"
-              :rid="rid"
-              :myno="myno"
-              :opno="opno"
-              :myfid="myfid"
-              :opfid="opfid"
-              :myflag="game.gameVals.pVals[myno].eFlags"
-              :cardsjson="cardsjson"
-              :tidstart="tidStart"
-              :fields="game.fields"
-              :gamevals="game.gameVals"
-            />
-          </div>
+          <PhaseComponent
+            :selected="selected"
+            :rid="rid"
+            :myno="myno"
+            :opno="opno"
+            :myphase="game.gameVals.pVals[myno].phase"
+            :opphase="game.gameVals.pVals[opno].phase"
+            :game="game"
+          />
+          <EffectsComponent
+            :selected="selected"
+            :rid="rid"
+            :myno="myno"
+            :opno="opno"
+            :myfid="myfid"
+            :opfid="opfid"
+            :myflag="game.gameVals.pVals[myno].eFlags"
+            :cardsjson="cardsjson"
+            :tidstart="tidStart"
+            :fields="game.fields"
+            :gamevals="game.gameVals"
+          />
         </div>
         <div class="hidden sm:flex mt-64 text-xs">
           Ph:{{ clphase }}-Cd:{{ game.gameVals.pVals[myno].selected }}-Ip:{{
@@ -356,15 +340,6 @@ export default {
     }
   },
   computed: {
-    commuStopFlag() {
-      // 通信待機完了スタンプ
-      const my = this.game.gameVals.pVals[this.myno].phase
-      const op = this.game.gameVals.pVals[this.opno].phase
-      if (my === op && this.buttonMessage === '通信待機中...') {
-        return 1
-      }
-      return 0
-    },
     gameEndFlag() {
       const f = this.game.gameVals.gameEndFlag
       return f
@@ -395,149 +370,12 @@ export default {
         this.win = false
       }
     },
-    commuStopFlag(newVal, oldVal) {
-      if (newVal === 1 && oldVal === 0) {
-        this.addMyPhase(1)
-      }
-    },
     getWin(newVal) {
       if (newVal === true) {
         this.actions = ['獲得', '疲労', '破棄', '追放', '勝利']
       } else {
         this.actions = ['獲得', '疲労', '破棄', '追放']
       }
-    },
-    clphase(newVal) {
-      const my = this.myno
-      const op = this.opno
-      if (newVal === 1) {
-        this.changeMyVals('selected', this.selected.cardId)
-        this.changeMyVals('selectedPlace', this.selected.cardPlace)
-        this.changeMyVals('usingIP', Number(this.selected.usingIP))
-        this.buttonMessage = '通信待機中...'
-      }
-      if (newVal === 2) {
-        setTimeout(() => {
-          const myVal = this.game.gameVals.pVals[my]
-          const opVal = this.game.gameVals.pVals[op]
-          console.log(myVal.usingIP)
-          console.log(opVal.usingIP)
-          if (myVal.selected !== opVal.selected) {
-            const newMyPurseIp = myVal.purseIP - myVal.usingIP
-            const newOpPurseIp = opVal.purseIP - opVal.usingIP
-            const myLeastDouble = opVal.usingIP + 1
-            const opLeastDouble = myVal.usingIP + 1
-            if (myVal.usingIP > myLeastDouble && newMyPurseIp > opVal.usingIP) {
-              this.addIP(1, -myVal.usingIP)
-              this.buttonMessage = 'W獲得する'
-              this.phaseMessage =
-                '相手の「支払いIP」+1を払って相手のカードを獲得できます。'
-              this.gainCard(
-                1,
-                this.game.gameVals.pVals[my].selected,
-                this.game.gameVals.pVals[my].selectedPlace
-              )
-              return
-            } else if (
-              opVal.usingIP > opLeastDouble &&
-              newOpPurseIp > myVal.usingIP
-            ) {
-              this.changeMyPhase(4)
-              return
-            } else {
-              this.addIP(1, -myVal.usingIP)
-              this.gainCard(
-                1,
-                this.game.gameVals.pVals[my].selected,
-                this.game.gameVals.pVals[my].selectedPlace
-              )
-            }
-          } else if (myVal.usingIP > opVal.usingIP) {
-            // 同種の場合多い方のみ処理
-            this.addIP(1, -myVal.usingIP)
-            this.gainCard(
-              1,
-              this.game.gameVals.pVals[my].selected,
-              this.game.gameVals.pVals[my].selectedPlace
-            )
-          } else if (myVal.usingIP === opVal.usingIP) {
-            // 同種同IPの場合、親が疲労させる
-            if (my === 0) {
-              const pid = this.game.gameVals.pVals[my].selectedPlace
-              this.fbSet('fields/0/cards/' + pid + '/tired', true)
-            }
-          }
-          this.changeMyPhase(5)
-        }, 1000)
-      }
-      if (newVal === 3) {
-        this.addIP(1, -this.game.gameVals.pVals[op].usingIP)
-        this.addIP(1, -1)
-        this.gainCard(
-          1,
-          this.game.gameVals.pVals[op].selected,
-          this.game.gameVals.pVals[op].selectedPlace
-        )
-        this.buttonMessage = '通信待機中...'
-        this.addMyPhase(1)
-      }
-      if (newVal === 4) {
-        this.buttonMessage = '通信待機中...'
-      }
-      if (newVal === 5) {
-        this.phaseMessage = '獲得時効果用フェイズ'
-        this.buttonMessage = '処理確定'
-      }
-      if (newVal === 6) {
-        this.buttonMessage = '通信待機中...'
-      }
-      if (newVal === 7) {
-        let myPurse = this.game.gameVals.pVals[my].purseIP
-        let opPurse = this.game.gameVals.pVals[op].purseIP
-        if (myPurse === opPurse) {
-          opPurse = opPurse + my
-          myPurse = myPurse + op
-        }
-        if (myPurse > opPurse) {
-          this.phaseMessage = 'カードをプレイしてください'
-          this.buttonMessage = 'ターン終了'
-        } else {
-          this.secondBatterFlag = 1
-          this.addMyPhase(1)
-        }
-      }
-      if (newVal === 8) {
-        this.phaseMessage = '相手がカードをプレイしています'
-        this.buttonMessage = '通信待機中...'
-      }
-      if (newVal === 9) {
-        if (this.secondBatterFlag === 1) {
-          this.phaseMessage = 'カードをプレイしてください'
-          this.buttonMessage = 'ターン終了'
-        } else {
-          this.addMyPhase(1)
-        }
-      }
-      if (newVal === 10) {
-        this.phaseMessage = '相手がカードをプレイしています'
-        this.buttonMessage = '通信待機中...'
-      }
-      if (newVal === 11) {
-        this.secondBatterFlag = 0
-        this.phaseMessage = 'カードを選択し、支払うIPを指定してください'
-        this.buttonMessage = '選出確定'
-        this.addIP(1, this.game.gameVals.pVals[this.myno].monthIP)
-        if (this.cardPushCheck(this.myfid) === 1) {
-          const cardLength = this.game.fields[this.myfid].cards.length
-          for (let i = 0; i < cardLength; i++) {
-            this.tireCard(this.myfid, i, false)
-          }
-          this.sendFieldById(this.myfid)
-        }
-        this.neFieldTiredControll()
-        this.changeMyPhase(0)
-      }
-      this.addLogNo()
     },
   },
   mounted() {
@@ -628,16 +466,6 @@ export default {
       try {
         this.selected.cardId = this.relatedCards[c][0]
       } catch (error) {}
-    },
-    phaseIncrement() {
-      this.addMyPhase(1)
-    },
-    doubleDenied() {
-      this.fbSet(
-        'gameVals/pVals/' + this.opno + '/purseIP',
-        this.game.gameVals.pVals[this.opno].usingIP
-      )
-      this.changeMyPhase(4)
     },
     sendFields() {
       this.sendFieldById(this.myfid)

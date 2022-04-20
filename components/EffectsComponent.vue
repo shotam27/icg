@@ -120,9 +120,7 @@ export default {
 
         const c = this.countCardsByKeyword('反応', this.myfid, true)
         if (c === 0) {
-          this.$fire.database
-            .ref('gameVals/pVals/' + this.opno + '/eFlags/0')
-            .set(1)
+          this.fbSet('gameVals/pVals/' + this.opno + '/eFlags/0', 1)
           this.effectEnd()
         } else if (n[0] === 20) {
           this.message =

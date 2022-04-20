@@ -68,6 +68,8 @@ export default {
           ],
           logNo: 0,
           gameEndFlag: 0,
+          firstPlayer: 99,
+          neFieldTired: [],
         },
       },
     }
